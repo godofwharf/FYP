@@ -26,6 +26,7 @@
  *******************************************************************************/
 package ch.epfl.arni.ncutils;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
@@ -35,7 +36,7 @@ import java.util.Arrays;
  *
  * @author lokeller
  */
-public class UncodedPacket implements Comparable<UncodedPacket> {
+public class UncodedPacket implements Serializable,Comparable<UncodedPacket> {
 
     private int id;
     public byte[] payload;
