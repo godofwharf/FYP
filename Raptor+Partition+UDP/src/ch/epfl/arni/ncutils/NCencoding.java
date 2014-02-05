@@ -25,8 +25,8 @@ public class NCencoding
 
     public static void main(String [] args) throws IOException {
 
-        FiniteField ff = FiniteField.getDefaultFiniteField();
-        int blockNumber = 10; //no. of blocks
+        FiniteField ff = new FiniteField(2,8);
+        int blockNumber = 100; //no. of blocks
     //	int payloadLen=10; //no. of bytes of each block
     //	int payloadLenCoeffs=20;
 
@@ -34,40 +34,47 @@ public class NCencoding
         long len=file.length();
         System.out.println(len);
      
-      int payloadLen = (int) (len/blockNumber);
-       int payloadLenCoeffs = payloadLen*2;
+        int payloadLen = (int) Math.ceil((double) len/blockNumber);
+        System.out.println(payloadLen);
+       int payloadLenCoeffs = payloadLen*4;
         int n=0,skipval=0;
-       
+        
+        String msg = "hello how are you?";    
         
         /* create the uncoded packets */
         UncodedPacket[] inputPackets = new UncodedPacket[blockNumber];
-        for ( int i = 0 ; i < blockNumber ; i++) 
+        
+
+        	
+        for ( int i = 0 ; i < blockNumber; i++) 
         {
        
           byte[] payload = new byte[payloadLen];
-          BufferedInputStream in = new BufferedInputStream(new FileInputStream(new File("D:/Apitu/Apitu/college stuff/FINAL YEAR PROJECT/testdoc.txt")));           
           
-          if(((int)len-skipval)>payloadLen)
-          {
-          in.skip(skipval);
-          n=in.read(payload,0,payloadLen);
-          skipval=skipval+n;
-          }
-          else
-          {
+          BufferedInputStream in = new BufferedInputStream(new FileInputStream(new File("D:/Apitu/Apitu/college stuff/FINAL YEAR PROJECT/testdoc.txt")));           
+
+          if(skipval < len) {
         	  in.skip(skipval);
-        	  n=in.read(payload,0,(int)len-skipval);
-        	  for(int m=n+1;m<payloadLen;m++)
-        	  {
-        		  payload[m]=0;
-        	  }
-          }          
-         // Arrays.fill(payload, (byte) ('h'));     
+        	  n = in.read(payload,0,payloadLen);
+        	  skipval += n;
+          }
+         // Arrays.fill(payload, (byte) ('h'));   
+          //inputPackets[i] = new UncodedPacket(i, msg[i]);
          
-          inputPackets[i] = new UncodedPacket(i, payload);        
+          inputPackets[i] = new UncodedPacket(i, payload);
+          byte b[] = inputPackets[i].getPayload();
+          
+          //debug info
+          System.out.print("uncoded packet "+ i + ":");
+          for(byte c:b) {
+        	  System.out.print(" " + c);
+          }
+          System.out.println();
         }
         System.out.println(" Input blocks: ");
-       printUncodedPackets(Arrays.asList(inputPackets), payloadLen);
+        
+        //Tested upto this point
+        //printUncodedPackets(Arrays.asList(inputPackets), payloadLen);
 
         /* prepare the input packets to be sent on the network */
         CodedPacket[] codewords = new CodedPacket[blockNumber];
@@ -108,32 +115,40 @@ public class NCencoding
         	 temp=v.coordinates;
         	 byte[] data=intToByte(temp);
         	 
-        	    try {
- 			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(new File("D:/Apitu/Apitu/college stuff/FINAL YEAR PROJECT/testenc.txt"), true));
+        	try {
+        	    BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(new File("D:/Apitu/Apitu/college stuff/FINAL YEAR PROJECT/testenc.txt"), true));
  				out.write(data, 0, payloadLen);
- 			out.close();
- 		} catch (Exception e) {
- 			// TODO Auto-generated catch block
- 			e.printStackTrace();
- 		}
+ 				out.close();
+        	} catch (Exception e) {
+        		// TODO Auto-generated catch block
+        		e.printStackTrace();
+        	}
         	
         }
 
        
      // printCodedPackets(Arrays.asList(networkOutput), payloadLenCoeffs);
-        
-      
       
         /* decode the received packets */
         PacketDecoder decoder = new PacketDecoder(ff, blockNumber, payloadLen);
         System.out.println(" Decoded packets: ");
+        List<UncodedPacket> packets = null;
         for ( int i = 0; i < blockNumber ; i++) {
         	
-            List<UncodedPacket> packets = decoder.addPacket(networkOutput[i]);
-            printUncodedPackets(packets, payloadLen);
+            packets = decoder.addPacket(networkOutput[i]);
+            
+            if(packets.size() == blockNumber) {           	
+            	
+            	System.out.println("No. of coded packets required for decoding: "+i);
+            }
+            else
+            	System.out.println(packets.size());
+            
         }
+        printUncodedPackets(packets, payloadLen);
+        
         System.out.println(" Input blocks: ");
-        printUncodedPackets(Arrays.asList(inputPackets), payloadLen);
+        //printUncodedPackets(Arrays.asList(inputPackets), payloadLen);
     }
 
    
@@ -141,13 +156,16 @@ public class NCencoding
     	
  
     	 	ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    	    ObjectOutputStream oos = new ObjectOutputStream(bos);
-    	    oos.writeObject(packets);
+    	    //ObjectOutputStream oos = new ObjectOutputStream(bos);
+    	    //oos.writeObject(packets);
+    	    for(UncodedPacket u:packets) {
+    	    	bos.write(u.getPayload());
+    	    }    	    
     	    byte[] data = bos.toByteArray();
     	  
     	    try {
-       			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(new File("D:/Apitu/Apitu/college stuff/FINAL YEAR PROJECT/resdoc.out"), true));
-       			out.write(data, 0, data.length);
+       			FileOutputStream out = new FileOutputStream(new File("D:/Apitu/Apitu/college stuff/FINAL YEAR PROJECT/resdec.txt"), false);
+       			out.write(data,0,data.length);
        			out.close();
        		} 
               catch (Exception e) 
@@ -155,8 +173,12 @@ public class NCencoding
        			// TODO Auto-generated catch block
        			e.printStackTrace();
        		}
-    	    
     	  
+    	/*ObjectOutputStream stream = new ObjectOutputStream(new FileOutputStream("D:/Apitu/Apitu/college stuff/FINAL YEAR PROJECT/result.txt")); 
+
+    			stream.writeObject(packets); 
+    			stream.close();
+    	  */
         	
     	for (UncodedPacket p : packets) {            
             System.out.println(p);
@@ -165,14 +187,12 @@ public class NCencoding
     
     private static void printCodedPackets(Iterable<CodedPacket> packets, int payloadLen)
     {
-    	
-  	
+    		
         for (CodedPacket p : packets) 
         {
             System.out.println(p);    
         }
-    }
-    
+    }    
     public static byte[] intToByte(int[] input)
     {
         ByteBuffer byteBuffer = ByteBuffer.allocate(input.length*4);
@@ -180,9 +200,6 @@ public class NCencoding
         intBuffer.put(input);
         byte[] array = byteBuffer.array();
         return array;
-    }
-  
- 
-    
+    }    
 }
 

@@ -39,7 +39,7 @@ import java.util.Arrays;
 public class UncodedPacket implements Serializable,Comparable<UncodedPacket> {
 
     private int id;
-    public byte[] payload;
+    private byte[] payload;
 
     /**
      * Constructs a new UncodedPacket with the specified id and payload
