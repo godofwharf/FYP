@@ -1,0 +1,7 @@
+**/.settings
+**/.classpath
+**/bin
+**/*.class
+**/*.iml
+**/*.ipr
+**/*.iws
